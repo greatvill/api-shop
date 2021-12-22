@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use DB;
+use Illuminate\Database\Query\JoinClause;
 
 class ProductController extends Controller
 {
@@ -36,8 +38,8 @@ class ProductController extends Controller
 
         $query->leftJoin(
             "field_values as $aliasFieldValue",
-            "$aliasFieldValue.field_id",
-            "$aliasFields.id"
+            fn(JoinClause $q) => $q->on("$aliasFieldValue.field_id", "$aliasFields.id")
+                ->on("$aliasFieldValue.product_variant_id", "product_variants.id")
         );
 
         $query->addSelect([
@@ -65,8 +67,8 @@ class ProductController extends Controller
 
             $query->leftJoin(
                 "field_values as $aliasFieldValue",
-                "$aliasFieldValue.field_id",
-                "$aliasFields.id"
+                fn(JoinClause $q) => $q->on("$aliasFieldValue.field_id", "$aliasFields.id")
+                    ->on("$aliasFieldValue.product_variant_id", "product_variants.id")
             );
 
             $query->addSelect([
