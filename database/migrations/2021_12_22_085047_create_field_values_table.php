@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateFieldsTable extends Migration
+class CreateFieldValuesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,13 +13,11 @@ class CreateFieldsTable extends Migration
      */
     public function up()
     {
-        Schema::create('fields', function (Blueprint $table) {
+        Schema::create('field_values', function (Blueprint $table) {
             $table->id();
-            $table->string('code', 30);
-            $table->string('type', 10);
-            $table->unsignedBigInteger('category_id');
-            $table->unsignedBigInteger('directory_id');
-            $table->boolean('is_multi')->default(false);
+            $table->unsignedBigInteger('product_variant_id');
+            $table->unsignedBigInteger('field_id');
+            $table->string('value');
             $table->timestamps();
         });
     }
@@ -31,6 +29,6 @@ class CreateFieldsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('fields');
+        Schema::dropIfExists('field_values');
     }
 }

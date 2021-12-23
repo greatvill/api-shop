@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\FieldValue;
 use DB;
 use Illuminate\Database\Query\JoinClause;
 
@@ -122,7 +123,7 @@ class ProductController extends Controller
             ->select([
                 'product_variants.id as id',
                 'product_variants.code as code',
-            ]);
+            ])->distinct();
 
         do {
             $codeCategory = $category->code;
@@ -145,6 +146,31 @@ class ProductController extends Controller
                 }
             }
         } while ($category = $category->parent);
-        return $query->get();
+        $paginator = $query->paginate(10);
+        $productVariants = collect($paginator->items())->keyBy('id');
+
+        //take multi fields
+        $multiFieldValue = FieldValue::query()
+            ->whereHas('field', function ($q) {
+                $q->where('is_multi', true);
+            })
+            ->with('field.category')
+            ->where('product_variant_id', $productVariants->pluck('id')->toArray())
+            ->get()->groupBy('product_variant_id');
+        $multiFieldValue->transform(fn($item) => $item->groupBy('field.category.code')
+            ->transform(fn($item) => $item->groupBy('field.code'))
+        );
+
+        $multiFieldValue->each(
+            fn($byProductVariant, $productVariantCode) => $byProductVariant
+                ->each(fn($byCategory, $categoryCode) => $byCategory
+                    ->each(static function ($byField, $fieldCode) use ($productVariantCode, $categoryCode, $productVariants) {
+                        $pv = $productVariants->get($productVariantCode);
+                        $pv->{$categoryCode . '_' . $fieldCode} = $byField->pluck('value');
+                    })
+                )
+        );
+
+        return $productVariants;
     }
 }
