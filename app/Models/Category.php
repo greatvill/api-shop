@@ -35,4 +35,9 @@ class Category extends Model
     {
         return $this->belongsTo(__CLASS__, 'parent_id');
     }
+
+    public function fields(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Field::class, 'category_id');
+    }
 }

@@ -81,4 +81,70 @@ class ProductController extends Controller
 
         return $query->get();
     }
+
+    public function actionList(int $categoryId)
+    {
+        $filter = [
+            'c1.f1' => '44',
+            'c2.f2' => 'ffsd',
+            'c3.f3' => 'asd',
+        ];
+        $query = DB::table('field_values')
+            ->select(['field_values.product_variant_id',])
+            ->distinct()
+            ->join('fields', 'fields.id', 'field_values.field_id')
+            ->join('categories', 'categories.id', 'fields.category_id')
+            ->where('fields.category_id', $categoryId)
+            ->groupBy('field_values.product_variant_id');
+
+        foreach ($filter as $key => $value) {
+            [$categoryCode, $fieldCode] = explode('.', $key);
+            $query->orWhere(fn($q) => $q->where('categories.code', $categoryCode)
+                ->where('fields.code', $fieldCode)
+                ->where('field_values.value', $value)
+            );
+        }
+        $query->havingRaw('COUNT(field_values.product_variant_id) >= ?', [count($filter)]);
+        return $query->get();
+        //попробовать с генерацией столбцов
+    }
+
+    public function actionList2($categoryId)
+    {
+        $filter = [
+            'c1_f1' => '44',
+            'c2_f2' => 'ffsd',
+            'c3_f3' => 'aaa',
+        ];
+        $category = Category::findOrFail($categoryId);
+        $query = \DB::table('product_variants');
+        $query
+            ->select([
+                'product_variants.id as id',
+                'product_variants.code as code',
+            ]);
+
+        do {
+            $codeCategory = $category->code;
+            $fields = $category->fields;
+
+            foreach ($fields as $f) {
+                $codeField = $f->code;
+                $aliasFieldValue = $codeCategory . '_' . $codeField;
+                $query->leftJoin(
+                    "field_values as $aliasFieldValue",
+                    fn(JoinClause $q) => $q->on("$aliasFieldValue.product_variant_id", "product_variants.id")
+                        ->where("$aliasFieldValue.field_id", $f->id)
+                );
+                $column = $aliasFieldValue . '_' . 'field';
+                $query->addSelect([
+                    "$aliasFieldValue.value as $column",
+                ]);
+                if (isset($filter[$aliasFieldValue])) {
+                    $query->where("$aliasFieldValue.value", $filter[$aliasFieldValue]);
+                }
+            }
+        } while ($category = $category->parent);
+        return $query->get();
+    }
 }
